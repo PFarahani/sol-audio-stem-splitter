@@ -1,0 +1,14 @@
+--find-links https://download.pytorch.org/whl/torch_stable.html
+torch==2.0.1+cu118
+torchaudio==2.0.2+cu118
+dora-search
+einops
+julius>=0.2.3
+lameenc>=1.2
+openunmix
+pyyaml
+tqdm
+numpy<2.0
+soundfile
+demucs
+streamlit

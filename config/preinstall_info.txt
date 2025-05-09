@@ -1,0 +1,32 @@
+Welcome to the Sol Audio Stem Splitter installation process.
+
+
+===================== Software Overview =====================
+Professional-grade audio separation tool using state-of-the-art machine learning to isolate vocal and instrumental tracks. Designed for music producers, audio engineers, and content creators.
+
+Key Features:
+• AI-Powered Stem Separation (Vocals/Instrumentals)
+• Local Processing - No Cloud Dependency
+• Support for MP3/WAV formats (up to 50MB)
+• Real-time Progress Monitoring
+• GPU Acceleration Support (CUDA-enabled devices)
+• Studio-Quality 320kbps MP3 Output
+
+===================== System Requirements ==================
+Minimum:
+• OS: Windows 10/11 (64-bit)
+• Storage: 500MB free space
+• RAM: 4GB (8GB recommended)
+• CPU: Intel i5 or equivalent (4 cores)
+
+Recommended for ML Processing:
+• NVIDIA GPU (RTX 20-series or newer)
+• CUDA 11.7+ Toolkit installed
+• 16GB+ RAM
+
+===================== Technical Specifications ==============
+Core Components:
+• Demucs Architecture (Facebook Research)
+• PyTorch ML Framework
+• Streamlit Web Interface
+• FFmpeg Audio Processing

@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+.python-version
+.env
+venv/
+.venv/
+
+# Application specific
+.cache/
+output/
+
+# Build artifacts
+build/
+dist/
+*.exe
+
+# Other
+*.psd

@@ -1,0 +1,167 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers workflow when a tag starting with 'v' is pushed
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Install UPX (compression tool)
+        run: |
+          curl -L https://github.com/upx/upx/releases/download/v4.2.1/upx-4.2.1-win64.zip -o upx.zip
+          7z x upx.zip -oupx
+          # New corrected path handling for Windows runner
+          mkdir upx_bin
+          copy upx\upx-4.2.1-win64\upx.exe upx_bin\
+          echo "UPX_DIR=$(pwd)\upx_bin" >> $env:GITHUB_ENV
+
+      - name: Extract version from tag
+        id: version
+        shell: bash
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Build with PyInstaller
+        run: |
+          pyinstaller --clean config/sol.spec
+          # Rename output to include version
+          mv dist/Sol.exe dist/Sol-${{ steps.version.outputs.version }}.exe
+
+      - name: Generate iss file
+        shell: pwsh
+        run: |
+          @"
+          #define MyAppName "Sol"
+          #define MyAppVersion "${{ steps.version.outputs.version }}"
+          #define MyAppPublisher "PFarahani"
+          #define MyAppURL "https://www.github.com/PFarahani"
+          #define MyAppExeName "Sol-x64.exe"
+
+          [Setup]
+          AppId={{B255D73D-DA8E-4AD7-98E1-C4425027191E}
+          AppName={#MyAppName}
+          AppVersion={#MyAppVersion}
+          ;AppVerName={#MyAppName} {#MyAppVersion}
+          AppPublisher={#MyAppPublisher}
+          AppPublisherURL={#MyAppURL}
+          AppSupportURL={#MyAppURL}
+          AppUpdatesURL={#MyAppURL}
+          DefaultDirName={autopf}\Sol
+          DefaultGroupName=Sol
+          UsePreviousAppDir=no
+          AllowNoIcons=yes
+          PrivilegesRequired=lowest
+          PrivilegesRequiredOverridesAllowed=commandline
+          OutputBaseFilename=SolSetup
+          SolidCompression=no
+          DiskSliceSize=750000000
+          DiskSpanning=yes
+          Compression=lzma2
+          InternalCompressLevel=ultra64
+          WizardStyle=modern
+          LicenseFile=config\license.txt
+          InfoBeforeFile=config\preinstall_info.txt
+          InfoAfterFile=config\postinstall_info.txt
+
+          [Languages]
+          Name: "english"; MessagesFile: "compiler:Default.isl"
+
+          [Files]
+          Source: "dist/Sol-${{ steps.version.outputs.version }}.exe"; DestDir: "{app}"; Flags: ignoreversion
+          
+          [Icons]
+          Name: "{group}\{cm:UninstallProgram,{#MyAppName}}"; Filename: "{uninstallexe}"
+          "@ | Out-File -FilePath solsetup.iss -Encoding utf8
+
+      - name: Download Inno Setup
+        run: |
+          curl -L -o is.exe https://jrsoftware.org/download.php/is.exe
+
+      - name: Install Inno Setup
+        run: |
+          Start-Process -FilePath ".\is.exe" -ArgumentList '/SILENT /NORESTART /DIR=".\InnoSetup"' -Wait
+        shell: powershell
+
+      - name: Compile Inno Setup Script
+        run: |
+          & ".\InnoSetup\ISCC.exe" /O"SolSetup" /F"Sol-Setup-${{ steps.version.outputs.version }}" "solsetup.iss"
+        shell: powershell
+
+      - name: Upload to GitHub Releases
+        if: success()
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: |
+            .\SolSetup\Sol-Setup-${{ steps.version.outputs.version }}.exe
+            .\SolSetup\Sol-Setup-${{ steps.version.outputs.version }}-*.bin
+          tag: v${{ steps.version.outputs.version }}
+          name: Release v${{ steps.version.outputs.version }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          allowUpdates: true
+
+      - name: Cleanup build artifacts
+        if: always()
+        run: |
+          Remove-Item -Recurse -Force build, dist, upx, upx_bin, upx.zip -ErrorAction SilentlyContinue
+          Remove-Item sol.spec -ErrorAction SilentlyContinue
+          Get-ChildItem -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force
+
+
+  cleanup_assets:
+    name: Cleanup Previous Release Assets
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install GitHub CLI and jq
+        run: sudo apt-get update && sudo apt-get install -y gh jq
+
+      - name: Get Current Tag
+        run: echo "CURRENT_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+
+      - name: Clean Previous Release Assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release list --limit 100 --json tagName,isDraft,isPrerelease | \
+          jq -r '.[] | select(.isDraft == false and .isPrerelease == false) | .tagName' | \
+          while read -r tag; do
+            if [ "$tag" != "$CURRENT_TAG" ]; then
+              gh release view "$tag" --json assets | \
+              jq -r '.assets[].name' | \
+              while read -r asset; do
+                if [[ "$asset" != "Source code.zip" && "$asset" != "Source code.tar.gz" ]]; then
+                  gh release delete-asset "$tag" "$asset" --yes
+                fi
+              done
+            fi
+          done
