@@ -8,6 +8,12 @@
 
 Professional audio separation solution leveraging cutting-edge machine learning to isolate vocal and instrumental tracks with studio-grade quality. Engineered for music production workflows and audio post-processing.
 
+
+<video controls width="720" controlslist="play timeline volume">
+<source src="assets/SolDemo.mp4" type="video/mp4" />
+</video>
+
+
 ## 📥 Download & Installation
 
 ### Prerequisites
