@@ -127,15 +127,14 @@
 
 
 (function () {
-    // Send shutdown signal to local endpoint
+    const parentWindow = window.parent;
+    const currentPort = parseInt(parentWindow.location.port);
+    const shutdownPort = currentPort + 1;
+    
     function terminateApp() {
-        fetch('http://localhost:5000/shutdown', {
-            method: 'GET',
-            mode: 'no-cors', // Bypass CORS issues
-            keepalive: true // Ensure request completes
-        }).catch(() => { }); // Suppress errors
+        const shutdownUrl = `http://${parentWindow.location.hostname}:${shutdownPort}/shutdown`;
+        navigator.sendBeacon(shutdownUrl);
     }
 
-    // Attach to tab close event
-    window.addEventListener('beforeunload', terminateApp);
+    parentWindow.addEventListener('beforeunload', terminateApp);
 })();

@@ -38,16 +38,38 @@ def inject_custom_styles():
 
 class ShutdownHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
+        self.handle_shutdown_request()
+
+    def do_POST(self):
+        self.handle_shutdown_request()
+
+    def handle_shutdown_request(self):
         if self.path == "/shutdown":
             self.send_response(200)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+            self.send_header("Cache-Control", "no-store")
             self.end_headers()
             self.wfile.write(b"Terminating server...")
             os.kill(os.getpid(), 9)
 
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.send_header("Access-Control-Max-Age", "86400")
+        self.end_headers()
+
 
 def run_shutdown_server():
-    """Initiate automatic termination when the browser/tab closes"""
-    with socketserver.TCPServer(("", 5000), ShutdownHandler) as httpd:
+    from streamlit import config
+
+    port = config.get_option("server.port")
+    # Different port for shutdown server
+    shutdown_port = port + 1
+    with socketserver.TCPServer(("", shutdown_port), ShutdownHandler) as httpd:
+        httpd.allow_reuse_address = True
         httpd.serve_forever()
 
 
