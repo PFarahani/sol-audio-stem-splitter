@@ -1,7 +1,11 @@
 # SPDX-FileCopyrightText: 2025 Peyman Farahani (@PFarahani)
 # SPDX-License-Identifier: Apache-2.0
 
-import sys, os
+import streamlit_config
+streamlit_config.apply_streamlit_patches()
+
+import sys
+import os
 from pathlib import Path
 import streamlit as st
 import streamlit.web.cli as stcli
@@ -148,5 +152,6 @@ if __name__ == "__main__":
             "run",
             resolve_path(__file__),
             "--global.developmentMode=false",
+            "--browser.gatherUsageStats=false"
         ]
         sys.exit(stcli.main())

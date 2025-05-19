@@ -126,9 +126,11 @@ def config_page():
 
     replace_tqdm()
 
-    shutdown_thread = Thread(target=run_shutdown_server, daemon=True)
-
-    shutdown_thread.start()
+    # Only start the shutdown server once per session
+    if "shutdown_server_started" not in st.session_state:
+        shutdown_thread = Thread(target=run_shutdown_server, daemon=True)
+        shutdown_thread.start()
+        st.session_state.shutdown_server_started = True
 
 
 def render_header_section():
