@@ -10,6 +10,7 @@ venv/
 .streamlit/
 .cache/
 output/
+*.log
 
 # Build artifacts
 build/

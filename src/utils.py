@@ -2,10 +2,27 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
+from datetime import datetime
+import traceback
 import time
 from pathlib import Path
 import streamlit as st
 from config import CACHE_DIR, OUTPUT_DIR
+
+
+def log_error(exc: Exception):
+    """
+    Logs error details to sol_error.log only when an error occurs.
+    Can be called from any module.
+    """
+    log_path = Path(__file__).parent / "sol_error.log"
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with log_path.open("a", encoding="utf-8") as f:
+        f.write(f"[{timestamp}] ERROR\n")
+        f.write(f"{str(exc)}\n")
+        f.write(traceback.format_exc())
+        f.write("\n" + "-" * 60 + "\n")
+
 
 class StreamlitTqdm:
     def __init__(

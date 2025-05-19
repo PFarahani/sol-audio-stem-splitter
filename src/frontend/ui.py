@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import os
-from threading import Thread
+import threading
 import http.server
 import socketserver
 import time
@@ -19,7 +19,7 @@ from config import (
     ABOUT_TEXT,
     MODEL_NAME,
 )
-from utils import load_css, load_js, replace_tqdm
+from utils import load_css, load_js, replace_tqdm, log_error
 
 
 def inject_custom_scripts(height: int = 0, **kwargs):
@@ -114,23 +114,27 @@ def handle_shutdown():
 
 def config_page():
     """Configure and customize the UI"""
-    st.set_page_config(
-        page_title=PAGE_TITLE, page_icon=FAVICON_PATH, menu_items={"About": ABOUT_TEXT}
-    )
+    try:
+        st.set_page_config(
+            page_title=PAGE_TITLE, page_icon=FAVICON_PATH, menu_items={"About": ABOUT_TEXT}
+        )
 
-    inject_custom_scripts()
+        inject_custom_scripts()
 
-    inject_custom_styles()
+        inject_custom_styles()
 
-    render_shutdown_button()
+        render_shutdown_button()
 
-    replace_tqdm()
+        replace_tqdm()
 
-    # Only start the shutdown server once per session
-    if "shutdown_server_started" not in st.session_state:
-        shutdown_thread = Thread(target=run_shutdown_server, daemon=True)
-        shutdown_thread.start()
-        st.session_state.shutdown_server_started = True
+        # Only start the shutdown server once per session
+        if "shutdown_server_started" not in st.session_state:
+            shutdown_thread = threading.Thread(target=run_shutdown_server, daemon=True)
+            shutdown_thread.start()
+            st.session_state.shutdown_server_started = True
+
+    except Exception as e:
+        log_error(e)
 
 
 def render_header_section():
@@ -148,97 +152,101 @@ def render_header_section():
 
 def render_advanced_config() -> dict:
     """Renders an expandable advanced configuration panel and returns user-selected values"""
-    from audio_processor import cuda_enabled
+    try:
+        from audio_processor import cuda_enabled
 
-    with st.expander("Advanced optional configurations", expanded=False):
-        st.markdown("#### Core Separation Parameters")
-        model_options = MODEL_NAME
-        model = st.selectbox(
-            "Model Name",
-            options=model_options,
-            index=0,
-            help="""
-                ### **Model Descriptions**  
-                1. **`htdemucs`**: 
-                Default model for separating audio into **4 stems** (vocals, drums, bass, other). 
-                Ideal for general-purpose use with balanced speed and quality.
+        with st.expander("Advanced optional configurations", expanded=False):
+            st.markdown("#### Core Separation Parameters")
+            model_options = MODEL_NAME
+            model = st.selectbox(
+                "Model Name",
+                options=model_options,
+                index=0,
+                help="""
+                    ### **Model Descriptions**  
+                    1. **`htdemucs`**: 
+                    Default model for separating audio into **4 stems** (vocals, drums, bass, other). 
+                    Ideal for general-purpose use with balanced speed and quality.
 
-                2. **`htdemucs_ft`**: 
-                Fine-tuned version of `htdemucs` for slightly improved separation accuracy, 
-                especially for vocals and instruments.
+                    2. **`htdemucs_ft`**: 
+                    Fine-tuned version of `htdemucs` for slightly improved separation accuracy, 
+                    especially for vocals and instruments.
 
-                3. **`htdemucs_6s`**: 
-                Separates audio into **6 stems**: vocals, drums, bass, guitar, piano, and other. 
-                Best for detailed instrumental extraction.
+                    3. **`htdemucs_6s`**: 
+                    Separates audio into **6 stems**: vocals, drums, bass, guitar, piano, and other. 
+                    Best for detailed instrumental extraction.
 
-                4. **`hdemucs_mmi`**: 
-                Uses mixture-invariant training to handle overlapping sounds better. 
-                Good for complex tracks with dense instrumentation.
+                    4. **`hdemucs_mmi`**: 
+                    Uses mixture-invariant training to handle overlapping sounds better. 
+                    Good for complex tracks with dense instrumentation.
 
-                5. **`mdx`**: 
-                Hybrid model combining spectral and time-domain methods. 
-                Focuses on vocal separation but works for other stems.
-                """,
-        )
-
-        stem_mode = st.radio("Stem Mode", ["Two Stems (Vocals)", "All Stems"])
-        if stem_mode == "Two Stems (Vocals)":
-            stem_config = ["--two-stems", "vocals"]
-        else:
-            stem_config = []
-
-        st.markdown("#### Output Format Configuration")
-        col1, col2 = st.columns(2)
-        with col1:
-            export_format = st.selectbox(
-                "Output Format", ["MP3", "WAV", "FLAC"], index=0
+                    5. **`mdx`**: 
+                    Hybrid model combining spectral and time-domain methods. 
+                    Focuses on vocal separation but works for other stems.
+                    """,
             )
-        with col2:
-            wav_bit_depth = None
-            mp3_bitrate = None
 
-            if export_format == "MP3":
-                mp3_bitrate = st.selectbox(
-                    "MP3 Bitrate", [320, 256, 192, 128, 96], index=0
-                )
-            elif export_format == "WAV":
-                wav_bit_depth = st.selectbox(
-                    "WAV Bit Depth",
-                    options=["32-bit float", "24-bit int", "None"],
-                    index=2,
-                )
+            stem_mode = st.radio("Stem Mode", ["Two Stems (Vocals)", "All Stems"])
+            if stem_mode == "Two Stems (Vocals)":
+                stem_config = ["--two-stems", "vocals"]
             else:
-                None
+                stem_config = []
 
-        st.markdown("#### Hardware Configuration")
+            st.markdown("#### Output Format Configuration")
+            col1, col2 = st.columns(2)
+            with col1:
+                export_format = st.selectbox(
+                    "Output Format", ["MP3", "WAV", "FLAC"], index=0
+                )
+            with col2:
+                wav_bit_depth = None
+                mp3_bitrate = None
 
-        gpu_accelerator = st.checkbox(
-            "GPU accelerator",
-            value=True if cuda_enabled() else False,
-            disabled=not cuda_enabled(),
-            help="Enable GPU acceleration (only available if CUDA is detected)",
-        )
-        device = "cuda" if gpu_accelerator else "cpu"
-        st.info(f"Using device: {device}")
+                if export_format == "MP3":
+                    mp3_bitrate = st.selectbox(
+                        "MP3 Bitrate", [320, 256, 192, 128, 96], index=0
+                    )
+                elif export_format == "WAV":
+                    wav_bit_depth = st.selectbox(
+                        "WAV Bit Depth",
+                        options=["32-bit float", "24-bit int", "None"],
+                        index=2,
+                    )
+                else:
+                    None
 
-        return {
-            "MODEL_NAME": model,
-            "STEM_MODE": stem_config,
-            "EXPORT_FORMAT": {
-                "format": (
-                    "--mp3"
-                    if export_format == "MP3"
-                    else "--flac" if export_format == "FLAC" else None
-                ),
-                "mp3_bitrate": (mp3_bitrate if export_format == "MP3" else None),
-                "wav_bit_depth": (
-                    "--float32"
-                    if wav_bit_depth == "32-bit float"
-                    else "--int24" if wav_bit_depth == "24-bit int" else None
-                ),
-            },
-            "DEVICE": device,
-        }
+            st.markdown("#### Hardware Configuration")
+
+            gpu_accelerator = st.checkbox(
+                "GPU accelerator",
+                value=True if cuda_enabled() else False,
+                disabled=not cuda_enabled(),
+                help="Enable GPU acceleration (only available if CUDA is detected)",
+            )
+            device = "cuda" if gpu_accelerator else "cpu"
+            st.info(f"Using device: {device}")
+
+            return {
+                "MODEL_NAME": model,
+                "STEM_MODE": stem_config,
+                "EXPORT_FORMAT": {
+                    "format": (
+                        "--mp3"
+                        if export_format == "MP3"
+                        else "--flac" if export_format == "FLAC" else None
+                    ),
+                    "mp3_bitrate": (mp3_bitrate if export_format == "MP3" else None),
+                    "wav_bit_depth": (
+                        "--float32"
+                        if wav_bit_depth == "32-bit float"
+                        else "--int24" if wav_bit_depth == "24-bit int" else None
+                    ),
+                },
+                "DEVICE": device,
+            }
+
+    except Exception as e:
+        log_error(e)
 
 
 def render_file_uploader():
