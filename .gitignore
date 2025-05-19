@@ -7,6 +7,7 @@ venv/
 .venv/
 
 # Application specific
+.streamlit/
 .cache/
 output/
 
