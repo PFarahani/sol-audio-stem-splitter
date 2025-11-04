@@ -37,14 +37,16 @@ https://github.com/user-attachments/assets/30c950e4-cd8c-4506-8557-a5d8b4178f33
 git clone https://github.com/PFarahani/sol-audio-stem-splitter.git
 cd sol-audio-stem-splitter
 
-# Create virtual environment
+# Create virtual environment (Python 3.9-3.11 recommended)
 python -m venv .venv
 source .venv/bin/activate  # Linux/MacOS
 .venv\Scripts\activate     # Windows
 
-# Install with production dependencies
+# Install dependencies
 pip install -r requirements.txt
 ```
+
+> **Note**: If you encounter PyTorch installation errors, ensure you're using Python 3.9-3.12. For Python 3.12+, PyTorch 2.2.0+ is required.
 
 ## 🚀 Key Features
 
@@ -118,6 +120,43 @@ For complete technical specifications, please refer to the official Demucs docum
 3. Commit changes (`git commit -am 'Add feature'`)
 4. Push to branch (`git push origin feature/improvement`)
 5. Open Pull Request
+
+## 🐛 Troubleshooting
+
+### PyTorch Installation Issues
+
+**Error: `Could not find a version that satisfies the requirement torch==X.X.X+cuXXX`**
+
+**Cause**: Python version incompatibility or incorrect pip index.
+
+**Solutions**:
+1. **Check Python version**: Run `python --version`
+   - PyTorch 2.0.1 requires Python 3.8-3.11
+   - PyTorch 2.2.0+ supports Python 3.8-3.12
+   - If using Python 3.12+, the requirements.txt already specifies PyTorch 2.2.0+
+
+2. **Verify pip is using the correct index**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+  The `requirements.txt` includes `--index-url` pointing to the CUDA 12.1 (cu121) PyTorch wheel repository.
+
+3. **Manual installation** (if needed):
+   ```bash
+  # For CUDA 12.1 (smaller Windows wheel)
+  pip install torch==2.2.0+cu121 torchaudio==2.2.0+cu121 --index-url https://download.pytorch.org/whl/cu121
+   
+   # For CPU only
+   pip install torch==2.2.0+cpu torchaudio==2.2.0+cpu --index-url https://download.pytorch.org/whl/cpu
+   ```
+
+4. **Still having issues?** Create a fresh virtual environment with a supported Python version:
+   ```bash
+   python3.11 -m venv .venv
+   source .venv/bin/activate  # Linux/MacOS
+   .venv\Scripts\activate     # Windows
+   pip install -r requirements.txt
+   ```
 
 ## 📜 License
 Apache 2.0 - See [LICENSE](LICENSE) for details

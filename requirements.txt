@@ -1,6 +1,6 @@
 --find-links https://download.pytorch.org/whl/torch_stable.html
-torch==2.0.1+cu118
-torchaudio==2.0.2+cu118
+torch==2.2.0+cu121
+torchaudio==2.2.0+cu121
 dora-search
 einops
 julius>=0.2.3
