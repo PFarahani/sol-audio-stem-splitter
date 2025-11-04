@@ -139,16 +139,16 @@ For complete technical specifications, please refer to the official Demucs docum
    ```bash
    pip install -r requirements.txt
    ```
-  The `requirements.txt` includes `--index-url` pointing to the CUDA 12.1 (cu121) PyTorch wheel repository.
+   The `requirements.txt` includes `--index-url` pointing to the CUDA 12.1 (cu121) PyTorch wheel repository.
 
 3. **Manual installation** (if needed):
    ```bash
-  # For CUDA 12.1 (smaller Windows wheel)
-  pip install torch==2.2.0+cu121 torchaudio==2.2.0+cu121 --index-url https://download.pytorch.org/whl/cu121
+   # For CUDA 12.1 (smaller Windows wheel)
+   pip install torch==2.2.0+cu121 torchaudio==2.2.0+cu121 --index-url https://download.pytorch.org/whl/cu121
    
-   # For CPU only
-   pip install torch==2.2.0+cpu torchaudio==2.2.0+cpu --index-url https://download.pytorch.org/whl/cpu
-   ```
+    # For CPU only
+    pip install torch==2.2.0+cpu torchaudio==2.2.0+cpu --index-url https://download.pytorch.org/whl/cpu
+    ```
 
 4. **Still having issues?** Create a fresh virtual environment with a supported Python version:
    ```bash
